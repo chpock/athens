@@ -93,3 +93,9 @@ func (s *Storage) Zip(ctx context.Context, module, version string) (storage.Size
 	}
 	return zipReader, nil
 }
+
+// Archive implements the (./pkg/storage).Getter interface.
+func (s *Storage) Archive(ctx context.Context, archive string) (storage.SizeReadCloser, error) {
+	const op errors.Op = "azureblob.Archive"
+    return nil, errors.E(op, "not implemented")
+}

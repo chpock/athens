@@ -34,6 +34,9 @@ type Protocol interface {
 
 	// Zip implements GET /{module}/@v/{version}.zip
 	Zip(ctx context.Context, mod, ver string) (storage.SizeReadCloser, error)
+
+	// Archive implements GET /mirror/{archive}
+	Archive(ctx context.Context, archive string) (storage.SizeReadCloser, error)
 }
 
 // Wrapper helps extend the main protocol's functionality with addons.
@@ -247,6 +250,24 @@ func (p *protocol) Zip(ctx context.Context, mod, ver string) (storage.SizeReadCl
 	}
 
 	return zip, nil
+}
+
+func (p *protocol) Archive(ctx context.Context, archive string) (storage.SizeReadCloser, error) {
+	const op errors.Op = "protocol.Archive"
+	ctx, span := observ.StartSpan(ctx, op.String())
+	defer span.End()
+	a, err := p.storage.Archive(ctx, archive)
+	if errors.IsNotFoundErr(err) {
+		err = p.processDownload(ctx, archive, "", func(newVer string) error {
+			a, err = p.storage.Archive(ctx, archive)
+			return err
+		})
+	}
+	if err != nil {
+		return nil, errors.E(op, err)
+	}
+
+	return a, nil
 }
 
 func (p *protocol) processDownload(ctx context.Context, mod, ver string, f func(newVer string) error) error {

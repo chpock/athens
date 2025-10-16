@@ -53,3 +53,20 @@ func (s *storageImpl) Zip(ctx context.Context, module, version string) (storage.
 	}
 	return storage.NewSizer(src, fi.Size()), nil
 }
+
+func (s *storageImpl) Archive(ctx context.Context, archive string) (storage.SizeReadCloser, error) {
+	const op errors.Op = "fs.Archive"
+	_, span := observ.StartSpan(ctx, op.String())
+	defer span.End()
+	versionedPath := s.versionLocation(archive, "")
+
+	src, err := s.filesystem.OpenFile(versionedPath, os.O_RDONLY, 0o666)
+	if err != nil {
+		return nil, errors.E(op, errors.M(archive), errors.KindNotFound)
+	}
+	fi, err := src.Stat()
+	if err != nil {
+		return nil, errors.E(op, err)
+	}
+	return storage.NewSizer(src, fi.Size()), nil
+}

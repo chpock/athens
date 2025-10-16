@@ -15,3 +15,12 @@ func getModuleParams(r *http.Request, op errors.Op) (mod, ver string, err error)
 
 	return params.Module, params.Version, nil
 }
+
+func getMirrorParams(r *http.Request, op errors.Op) (string, error) {
+	archive, err := paths.GetArchive(r)
+	if err != nil {
+		return "", errors.E(op, err, errors.KindBadRequest)
+	}
+
+	return archive, nil
+}

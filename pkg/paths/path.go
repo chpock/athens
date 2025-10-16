@@ -30,6 +30,17 @@ func GetVersion(r *http.Request) (string, error) {
 	return DecodePath(version)
 }
 
+// GetArchive gets the archive from the path
+func GetArchive(r *http.Request) (string, error) {
+	const op errors.Op = "paths.GetArchive"
+
+	archive := mux.Vars(r)["archive"]
+	if archive == "" {
+		return "", errors.E(op, "missing version parameter")
+	}
+	return archive, nil
+}
+
 // AllPathParams holds the module and version in the path of a ?go-get=1
 // request.
 type AllPathParams struct {

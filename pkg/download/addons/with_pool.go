@@ -126,3 +126,19 @@ func (p *withpool) Zip(ctx context.Context, mod, ver string) (storage.SizeReadCl
 	}
 	return zip, nil
 }
+
+func (p *withpool) Archive(ctx context.Context, archive string) (storage.SizeReadCloser, error) {
+	const op errors.Op = "pool.Archive"
+	var a storage.SizeReadCloser
+	var err error
+	done := make(chan struct{}, 1)
+	p.jobCh <- func() {
+		a, err = p.dp.Archive(ctx, archive)
+		close(done)
+	}
+	<-done
+	if err != nil {
+		return nil, errors.E(op, err)
+	}
+	return a, nil
+}
