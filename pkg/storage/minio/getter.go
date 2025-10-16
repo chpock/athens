@@ -71,6 +71,28 @@ func (s *storageImpl) Zip(ctx context.Context, module, vsn string) (storage.Size
 	return storage.NewSizer(zipReader, oi.Size), nil
 }
 
+func (s *storageImpl) Archive(ctx context.Context, archive string) (storage.SizeReadCloser, error) {
+	const op errors.Op = "minio.Archive"
+	_, span := observ.StartSpan(ctx, op.String())
+	defer span.End()
+
+	_, err := s.minioClient.StatObject(s.bucketName, archive, minio.StatObjectOptions{})
+	if err != nil {
+		return nil, errors.E(op, err, errors.KindNotFound, errors.M(archive))
+	}
+
+	archiveReader, err := s.minioClient.GetObject(s.bucketName, archive, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, errors.E(op, err)
+	}
+	oi, err := archiveReader.Stat()
+	if err != nil {
+		_ = archiveReader.Close()
+		return nil, errors.E(op, err)
+	}
+	return storage.NewSizer(archiveReader, oi.Size), nil
+}
+
 func transformNotFoundErr(op errors.Op, module, version string, err error) error {
 	var eresp minio.ErrorResponse
 	if errors.AsErr(err, &eresp) {

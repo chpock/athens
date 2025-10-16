@@ -81,6 +81,15 @@ func (s *service) Zip(ctx context.Context, mod, ver string) (storage.SizeReadClo
 	return storage.NewSizer(body, size), nil
 }
 
+func (s *service) Archive(ctx context.Context, archive string) (storage.SizeReadCloser, error) {
+	const op errors.Op = "external.Archive"
+	body, size, err := s.getRequest(ctx, archive, "", "")
+	if err != nil {
+		return nil, errors.E(op, err)
+	}
+	return storage.NewSizer(body, size), nil
+}
+
 func (s *service) Save(ctx context.Context, mod, ver string, modFile []byte, zip io.Reader, zipMD5, info []byte) error {
 	const op errors.Op = "external.Save"
 	var err error
@@ -162,7 +171,10 @@ func (s *service) doRequest(ctx context.Context, method, mod, ver, ext string) (
 	if err != nil {
 		return nil, 0, errors.E(op, err)
 	}
-	url := s.url + "/" + mod + "/@v/" + ver
+	url := s.url + "/" + mod
+	if ver != "" {
+		url += "/@v/" + ver
+	}
 	if ext != "" {
 		url += "." + ext
 	}

@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"net/http"
 
 	"github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
@@ -70,15 +71,23 @@ func (g *goGetFetcher) Fetch(ctx context.Context, mod, ver string) (*storage.Ver
 		return nil, errors.E(op, err)
 	}
 
-	m, err := downloadModule(
-		ctx,
-		g.goBinaryName,
-		g.envVars,
-		goPathRoot,
-		modPath,
-		mod,
-		ver,
-	)
+	var m goModule
+	if ver == "" {
+		m, err = downloadArchive(
+			goPathRoot,
+			mod,
+		)
+	} else {
+		m, err = downloadModule(
+			ctx,
+			g.goBinaryName,
+			g.envVars,
+			goPathRoot,
+			modPath,
+			mod,
+			ver,
+		)
+	}
 	if err != nil {
 		_ = clearFiles(g.fs, goPathRoot)
 		return nil, errors.E(op, err)
@@ -130,6 +139,53 @@ func (g *goGetFetcher) Fetch(ctx context.Context, mod, ver string) (*storage.Ver
 	storageVer.ZipMD5 = zipMD5
 
 	return &storageVer, nil
+}
+
+func downloadArchive(
+	repoRoot,
+	archive string,
+) (goModule, error) {
+	const op errors.Op = "module.downloadModule"
+
+	url := fmt.Sprintf("https://%s", archive)
+	resp, err := http.Get(url)
+	if err != nil {
+		return goModule{}, errors.E(op, err)
+	}
+	defer resp.Body.Close()
+
+	archivePath := filepath.Join(repoRoot, "archive")
+	out, err := os.Create(archivePath)
+	if err != nil {
+		return goModule{}, errors.E(op, err)
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return goModule{}, errors.E(op, err)
+	}
+
+	modPath := filepath.Join(repoRoot, "mod")
+	modFile, err := os.Create(modPath)
+	if err != nil {
+		return goModule{}, errors.E(op, err)
+	}
+	defer modFile.Close()
+
+	infoPath := filepath.Join(repoRoot, "info")
+	infoFile, err := os.Create(infoPath)
+	if err != nil {
+		return goModule{}, errors.E(op, err)
+	}
+	defer infoFile.Close()
+
+	return goModule{
+		Version: "",
+        Info: infoPath,
+        GoMod: modPath,
+        Zip: archivePath,
+	}, nil
 }
 
 // given a filesystem, gopath, repository root, module and version, runs 'go mod download -json'

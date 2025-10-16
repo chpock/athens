@@ -80,6 +80,12 @@ func (s *ModuleStore) Zip(ctx context.Context, module, vsn string) (storage.Size
 	return storage.NewSizer(dStream, size), nil
 }
 
+// Archive implements storage.Getter.
+func (s *ModuleStore) Archive(ctx context.Context, archive string) (storage.SizeReadCloser, error) {
+	const op errors.Op = "mongo.Zip"
+	return nil, errors.E(op, "not implemented")
+}
+
 // Query connects to and queries storage module.
 func query(ctx context.Context, s *ModuleStore, module, vsn string) (*storage.Module, error) {
 	const op errors.Op = "mongo.query"

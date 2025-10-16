@@ -20,6 +20,9 @@ func (s *storageImpl) moduleLocation(module string) string {
 }
 
 func (s *storageImpl) versionLocation(module, version string) string {
+	if version == "" {
+		return s.moduleLocation(module)
+	}
 	return filepath.Join(s.moduleLocation(module), version)
 }
 

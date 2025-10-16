@@ -79,6 +79,24 @@ func (s *Storage) Zip(ctx context.Context, module, version string) (storage.Size
 	return zipReader, nil
 }
 
+// Archive implements the (./pkg/storage).Getter interface.
+func (s *Storage) Archive(ctx context.Context, archive string) (storage.SizeReadCloser, error) {
+	const op errors.Op = "s3.Archive"
+	ctx, span := observ.StartSpan(ctx, op.String())
+	defer span.End()
+
+	archiveReader, err := s.open(ctx, archive)
+	if err != nil {
+		var nsk *types.NoSuchKey
+		if errors.AsErr(err, &nsk) {
+			return nil, errors.E(op, errors.M(archive), errors.KindNotFound)
+		}
+		return nil, errors.E(op, err, errors.M(archive))
+	}
+
+	return archiveReader, nil
+}
+
 func (s *Storage) open(ctx context.Context, path string) (storage.SizeReadCloser, error) {
 	const op errors.Op = "s3.open"
 	ctx, span := observ.StartSpan(ctx, op.String())

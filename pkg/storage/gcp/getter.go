@@ -59,6 +59,18 @@ func (s *Storage) Zip(ctx context.Context, module, version string) (pkgstorage.S
 	return pkgstorage.NewSizer(zipReader, zipReader.Attrs.Size), nil
 }
 
+// Archive implements Getter.
+func (s *Storage) Archive(ctx context.Context, archive string) (pkgstorage.SizeReadCloser, error) {
+	const op errors.Op = "gcp.Archive"
+	ctx, span := observ.StartSpan(ctx, op.String())
+	defer span.End()
+	archiveReader, err := s.bucket.Object(archive).NewReader(ctx)
+	if err != nil {
+		return nil, errors.E(op, err, getErrorKind(err), errors.M(archive))
+	}
+	return pkgstorage.NewSizer(archiveReader, archiveReader.Attrs.Size), nil
+}
+
 func getErrorKind(err error) int {
 	if errors.IsErr(err, storage.ErrObjectNotExist) {
 		return errors.KindNotFound

@@ -17,6 +17,22 @@ func (s *storageImpl) Save(ctx context.Context, module, version string, mod []by
 	defer span.End()
 	dir := s.versionLocation(module, version)
 
+	if version == "" {
+		if err := s.filesystem.MkdirAll(filepath.Dir(dir), 0o777); err != nil {
+			return errors.E(op, err, errors.M(module), errors.V(version))
+		}
+		f, err := s.filesystem.OpenFile(dir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o666)
+		if err != nil {
+			return errors.E(op, err, errors.M(module), errors.V(version))
+		}
+		defer func() { _ = f.Close() }()
+		_, err = io.Copy(f, zip)
+		if err != nil {
+			return errors.E(op, err, errors.M(module), errors.V(version))
+		}
+		return nil
+	}
+
 	// NB: The process's umask is subtracted from the permissions below,
 	// so an umask of for example 0077 allows directories and files to be
 	// created with mode 0700 / 0600, i.e. not world- or group-readable.

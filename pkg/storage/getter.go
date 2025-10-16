@@ -10,6 +10,7 @@ type Getter interface {
 	Info(ctx context.Context, module, vsn string) ([]byte, error)
 	GoMod(ctx context.Context, module, vsn string) ([]byte, error)
 	Zip(ctx context.Context, module, vsn string) (SizeReadCloser, error)
+	Archive(ctx context.Context, archive string) (SizeReadCloser, error)
 }
 
 // SizeReadCloser extends io.ReadCloser
