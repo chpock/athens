@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gomods/athens/pkg/download/mode"
 	"github.com/gomods/athens/pkg/errors"
@@ -42,8 +43,16 @@ func MirrorHandler(dp Protocol, lggr log.Entry, df *mode.DownloadFile) http.Hand
 			return
 		}
 		defer func() { _ = a.Close() }()
-
-		w.Header().Set("Content-Type", "application/octet-stream")
+		var ct string
+		switch {
+		case strings.HasSuffix(archive, "/") || strings.HasSuffix(archive, ".html") || strings.HasSuffix(archive, ".htm") || strings.HasSuffix(archive, "_html"):
+			ct = "text/html"
+		case strings.HasSuffix(archive, ".json") || strings.HasSuffix(archive, "_json"):
+			ct = "application/json; charset=utf-8"
+		default:
+			ct = "application/octet-stream"
+		}
+		w.Header().Set("Content-Type", ct)
 		size := a.Size()
 		if size > 0 {
 			w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
