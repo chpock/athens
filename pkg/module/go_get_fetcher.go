@@ -172,7 +172,7 @@ func downloadArchive(
 			return goModule{}, errors.E(op, err)
 		}
 		const oldStr = "https://files.pythonhosted.org/"
-		const newStr = "../../files.pythonhosted.org/"
+		const newStr = "../../../files.pythonhosted.org/"
 		body = bytes.ReplaceAll(body, []byte(oldStr), []byte(newStr))
 		_, err = out.Write(body)
 	} else {
