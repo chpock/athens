@@ -161,7 +161,24 @@ func downloadArchive(
 	}
 	defer out.Close()
 
-	_, err = io.Copy(out, resp.Body)
+	if strings.HasPrefix(archive, "pypi.org/") && strings.HasSuffix(archive, "/") {
+		// This is special case for pypi.org/simple files. We expect small html files here.
+		// So, we don't case about memory and can read whole body into memory.
+		// Also, we don't case about encoding to keep things simple.
+		// We assume that html is just ASCII file.
+		var body []byte
+		body, err = io.ReadAll(resp.Body)
+		if err != nil {
+			return goModule{}, errors.E(op, err)
+		}
+		const oldStr = "https://files.pythonhosted.org/"
+		const newStr = "../../files.pythonhosted.org/"
+		body = bytes.ReplaceAll(body, []byte(oldStr), []byte(newStr))
+		_, err = out.Write(body)
+	} else {
+		_, err = io.Copy(out, resp.Body)
+	}
+
 	if err != nil {
 		return goModule{}, errors.E(op, err)
 	}
