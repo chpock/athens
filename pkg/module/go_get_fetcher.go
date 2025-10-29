@@ -154,6 +154,13 @@ func downloadArchive(
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			return goModule{}, errors.E(op, "got '404 Not Found' response", errors.KindNotFound)
+		}
+		return goModule{}, errors.E(op, fmt.Errorf("unexpected status code: %d", resp.StatusCode))
+	}
+
 	archivePath := filepath.Join(repoRoot, "archive")
 	out, err := os.Create(archivePath)
 	if err != nil {
