@@ -54,6 +54,7 @@ func RegisterHandlers(r *mux.Router, opts *HandlerOpts) {
 	r.Handle(PathVersionModule, LogEntryHandler(ModuleHandler, opts)).Methods(http.MethodGet)
 	r.Handle(PathVersionZip, LogEntryHandler(ZipHandler, opts)).Methods(http.MethodGet, http.MethodHead)
 	r.Handle(PathMirror, LogEntryHandler(MirrorHandler, opts)).Methods(http.MethodGet, http.MethodHead)
+	r.Handle(PathMirror, LogEntryHandler(MirrorDeleteHandler, opts)).Methods(http.MethodDelete)
 }
 
 func getRedirectURL(base, downloadPath string) (string, error) {

@@ -19,6 +19,26 @@ func (s *Storage) Exists(ctx context.Context, module, version string) (bool, err
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 
+	if version == "" {
+		_, err := s.s3API.HeadObject(
+			ctx,
+			&s3.HeadObjectInput{
+				Bucket: aws.String(s.bucket),
+				Key:    aws.String(module),
+			})
+		exists := false
+		if err == nil {
+			exists = true
+		} else {
+			var aerr smithy.APIError
+			if errors.AsErr(err, &aerr) && aerr.ErrorCode() == "NotFound" {
+				err = nil
+				exists = false
+			}
+		}
+		return exists, err
+	}
+
 	files := []string{"info", "mod", "zip"}
 	errChan := make(chan error, len(files))
 	defer close(errChan)

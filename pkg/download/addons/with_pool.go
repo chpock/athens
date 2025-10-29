@@ -142,3 +142,18 @@ func (p *withpool) Archive(ctx context.Context, archive string) (storage.SizeRea
 	}
 	return a, nil
 }
+
+func (p *withpool) DeleteArchive(ctx context.Context, archive string) (error) {
+	const op errors.Op = "pool.DeleteArchive"
+	var err error
+	done := make(chan struct{}, 1)
+	p.jobCh <- func() {
+		err = p.dp.DeleteArchive(ctx, archive)
+		close(done)
+	}
+	<-done
+	if err != nil {
+		return errors.E(op, err)
+	}
+	return nil
+}

@@ -67,3 +67,23 @@ func MirrorHandler(dp Protocol, lggr log.Entry, df *mode.DownloadFile) http.Hand
 	}
 	return http.HandlerFunc(f)
 }
+
+// MirrorDeleteHandler implements DELETE /mirror/.
+func MirrorDeleteHandler(dp Protocol, lggr log.Entry, df *mode.DownloadFile) http.Handler {
+	const op errors.Op = "download.MirrorDeleteHandler"
+	f := func(w http.ResponseWriter, r *http.Request) {
+		archive, err := getMirrorParams(r, op)
+		if err != nil {
+			lggr.SystemErr(err)
+			w.WriteHeader(errors.Kind(err))
+			return
+		}
+		err = dp.DeleteArchive(r.Context(), archive)
+		if err != nil {
+			w.WriteHeader(errors.Kind(err))
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+	return http.HandlerFunc(f)
+}

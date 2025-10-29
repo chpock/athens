@@ -20,6 +20,14 @@ func Delete(ctx context.Context, module, version string, del Deleter, timeout ti
 	tctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
+	if version == "" {
+		err := del(tctx, module)
+		if err != nil {
+			return errors.E(op, err)
+		}
+		return nil
+	}
+
 	delFn := func(ext string) <-chan error {
 		ec := make(chan error)
 

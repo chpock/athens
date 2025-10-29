@@ -37,6 +37,9 @@ type Protocol interface {
 
 	// Archive implements GET /mirror/{archive}
 	Archive(ctx context.Context, archive string) (storage.SizeReadCloser, error)
+
+	// DeleteArchive implements DELETE /mirror/{archive}
+	DeleteArchive(ctx context.Context, archive string) (error)
 }
 
 // Wrapper helps extend the main protocol's functionality with addons.
@@ -268,6 +271,18 @@ func (p *protocol) Archive(ctx context.Context, archive string) (storage.SizeRea
 	}
 
 	return a, nil
+}
+
+func (p *protocol) DeleteArchive(ctx context.Context, archive string) (error) {
+	const op errors.Op = "protocol.DeleteArchive"
+	ctx, span := observ.StartSpan(ctx, op.String())
+	defer span.End()
+	err := p.storage.Delete(ctx, archive, "")
+	if err != nil {
+		return errors.E(op, err)
+	}
+
+	return nil
 }
 
 func (p *protocol) processDownload(ctx context.Context, mod, ver string, f func(newVer string) error) error {
