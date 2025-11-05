@@ -200,3 +200,8 @@ func (s *service) doRequest(ctx context.Context, method, mod, ver, ext string) (
 	}
 	return resp.Body, size, nil
 }
+
+func (s *service) Exists(ctx context.Context, module, version string) (bool, error) {
+	const op errors.Op = "fs.Exists"
+	return false, errors.E(op, "not implemented")
+}

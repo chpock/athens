@@ -259,6 +259,26 @@ func (p *protocol) Archive(ctx context.Context, archive string) (storage.SizeRea
 	const op errors.Op = "protocol.Archive"
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
+	var obsolete = false
+	if strings.HasPrefix(archive, "pypi.org/") && strings.HasSuffix(archive, "/") {
+		obsolete, _ = p.storage.Exists(ctx, archive, "expired?")
+		if (obsolete) {
+			derr := p.processDownload(ctx, archive, "", func(newVer string) error {
+				return nil
+			})
+			if derr != nil {
+				log.EntryFromContext(ctx).Warnf(
+					"got error during archive '%s' refresh, old version will be returned: %s",
+					archive, derr,
+				)
+			}
+			a, err := p.storage.Archive(ctx, archive)
+			if err != nil {
+				return nil, errors.E(op, err)
+			}
+			return a, nil
+		}
+	}
 	a, err := p.storage.Archive(ctx, archive)
 	if errors.IsNotFoundErr(err) {
 		err = p.processDownload(ctx, archive, "", func(newVer string) error {

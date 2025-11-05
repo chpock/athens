@@ -3,6 +3,7 @@ package s3
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -10,6 +11,7 @@ import (
 	"github.com/gomods/athens/pkg/config"
 	"github.com/gomods/athens/pkg/errors"
 	"github.com/gomods/athens/pkg/observ"
+	"github.com/gomods/athens/pkg/log"
 )
 
 // Exists implements the (./pkg/storage).Checker interface
@@ -19,8 +21,8 @@ func (s *Storage) Exists(ctx context.Context, module, version string) (bool, err
 	ctx, span := observ.StartSpan(ctx, op.String())
 	defer span.End()
 
-	if version == "" {
-		_, err := s.s3API.HeadObject(
+	if version == "" || version == "expired?" {
+		o, err := s.s3API.HeadObject(
 			ctx,
 			&s3.HeadObjectInput{
 				Bucket: aws.String(s.bucket),
@@ -34,6 +36,31 @@ func (s *Storage) Exists(ctx context.Context, module, version string) (bool, err
 			if errors.AsErr(err, &aerr) && aerr.ErrorCode() == "NotFound" {
 				err = nil
 				exists = false
+			}
+		}
+		if exists && version == "expired?" {
+			if o.LastModified == nil {
+				log.EntryFromContext(ctx).Warnf("got nil LastModified for archive '%s'", module)
+				exists = false
+			} else {
+				modTime := *o.LastModified
+				age := time.Since(modTime)
+				secs := int(age.Round(time.Second).Seconds())
+				log.EntryFromContext(ctx).Debugf(
+					"archive '%s' has '%s' LastModified field and %d seconds age",
+					module, modTime.Format(time.RFC3339), secs,
+				)
+				// 3600 seconds - 1 hour
+				// if secs > 3600 {
+				if secs > 3600 {
+					log.EntryFromContext(ctx).Infof(
+						"archive '%s' has %d seconds age and must be updated",
+						module, secs,
+					)
+					// exists is already true here
+				} else {
+					exists = false
+				}
 			}
 		}
 		return exists, err

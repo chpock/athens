@@ -6,4 +6,5 @@ type Backend interface {
 	Getter
 	Saver
 	Deleter
+	Checker
 }
